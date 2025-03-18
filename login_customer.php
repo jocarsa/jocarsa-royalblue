@@ -1,18 +1,20 @@
 <?php
 session_start();
 require_once 'inc/dbinit.php';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email']);
+    $email    = trim($_POST['email']);
     $password = trim($_POST['password']);
     $stmt = $pdo->prepare("SELECT * FROM customers WHERE email = :email LIMIT 1");
     $stmt->execute([':email' => $email]);
     $customer = $stmt->fetch(PDO::FETCH_ASSOC);
-    // In production use password_hash() and password_verify()
+    // For production: use password_hash()/password_verify() instead
     if ($customer && $customer['password'] === $password) {
-        $_SESSION['customer_id'] = $customer['id'];
+        $_SESSION['customer_id']    = $customer['id'];
         $_SESSION['customer_email'] = $customer['email'];
-        $_SESSION['customer_nombre'] = $customer['nombre'];
-        header("Location: index.php");
+        $_SESSION['customer_nombre']= $customer['nombre'];
+        $redirect = isset($_GET['redirect']) ? $_GET['redirect'] : 'index.php';
+        header("Location: $redirect");
         exit;
     } else {
         $error = "Email o contraseña incorrectos.";
@@ -32,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if (!empty($error)): ?>
         <div class="alert-error"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
-    <form method="post">
+    <form method="post" action="login_customer.php<?php echo isset($_GET['redirect']) ? '?redirect=' . urlencode($_GET['redirect']) : ''; ?>">
         <label for="email">Email:</label>
         <input type="email" name="email" id="email" required>
         
@@ -41,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <button type="submit">Iniciar Sesión</button>
     </form>
-    <p>¿No tienes cuenta? <a href="signup_customer.php">Regístrate aquí</a></p>
+    <p>¿No tienes cuenta? <a href="signup_customer.php<?php echo isset($_GET['redirect']) ? '?redirect=' . urlencode($_GET['redirect']) : ''; ?>">Regístrate aquí</a></p>
     <p><a href="index.php">Continuar sin iniciar sesión</a></p>
 </div>
 </body>

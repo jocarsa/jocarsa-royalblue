@@ -1,12 +1,12 @@
 <?php
 session_start();
 require_once 'inc/dbinit.php';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre = trim($_POST['nombre']);
-    $email = trim($_POST['email']);
+    $nombre   = trim($_POST['nombre']);
+    $email    = trim($_POST['email']);
     $password = trim($_POST['password']);
     if ($nombre && $email && $password) {
-        // Check if email already exists
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM customers WHERE email = :email");
         $stmt->execute([':email' => $email]);
         if ($stmt->fetchColumn() > 0) {
@@ -14,14 +14,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $stmt = $pdo->prepare("INSERT INTO customers (nombre, email, password) VALUES (:nombre, :email, :password)");
             $stmt->execute([
-                ':nombre' => $nombre,
-                ':email' => $email,
-                ':password' => $password  // In production use password_hash()
+                ':nombre'   => $nombre,
+                ':email'    => $email,
+                ':password' => $password  // For production, use password_hash()
             ]);
-            $_SESSION['customer_id'] = $pdo->lastInsertId();
-            $_SESSION['customer_email'] = $email;
+            $_SESSION['customer_id']     = $pdo->lastInsertId();
+            $_SESSION['customer_email']  = $email;
             $_SESSION['customer_nombre'] = $nombre;
-            header("Location: index.php");
+            $redirect = isset($_GET['redirect']) ? $_GET['redirect'] : 'index.php';
+            header("Location: $redirect");
             exit;
         }
     } else {
@@ -42,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if (!empty($error)): ?>
         <div class="alert-error"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
-    <form method="post">
+    <form method="post" action="signup_customer.php<?php echo isset($_GET['redirect']) ? '?redirect=' . urlencode($_GET['redirect']) : ''; ?>">
         <label for="nombre">Nombre:</label>
         <input type="text" name="nombre" id="nombre" required>
         
@@ -54,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <button type="submit">Registrarse</button>
     </form>
-    <p>¿Ya tienes cuenta? <a href="login_customer.php">Inicia Sesión</a></p>
+    <p>¿Ya tienes cuenta? <a href="login_customer.php<?php echo isset($_GET['redirect']) ? '?redirect=' . urlencode($_GET['redirect']) : ''; ?>">Inicia Sesión</a></p>
     <p><a href="index.php">Continuar sin registrarse</a></p>
 </div>
 </body>

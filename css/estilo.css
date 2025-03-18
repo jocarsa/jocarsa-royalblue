@@ -1,8 +1,9 @@
-/* estilo.css - Estilo profesional y moderno para el front end */
-
-/* Reset básico y configuración general */
+/* Fixed Front‑end CSS for Jocarsa Reservations */
 @import url('https://static.jocarsa.com/fuentes/ubuntu-font-family-0.83/ubuntu.css');
 
+/* ------------------------------- */
+/* Reset & Base Styles             */
+/* ------------------------------- */
 * {
   margin: 0;
   padding: 0;
@@ -10,50 +11,100 @@
 }
 
 body {
-  font-family: Ubuntu, Arial, sans-serif;
+  font-family: 'Ubuntu', Arial, sans-serif;
   background: #f7f9fc;
   color: #333;
   line-height: 1.6;
   padding: 20px;
 }
 
-/* Contenedor principal */
+/* ------------------------------- */
+/* Header                          */
+/* ------------------------------- */
+header {
+  background: #0073e6;
+  padding: 10px;
+  color: #fff;
+  text-align: right;
+  margin-bottom: 20px;
+}
+
+header a {
+  color: #fff;
+  text-decoration: none;
+  margin-left: 10px;
+}
+
+/* ------------------------------- */
+/* Container & Headings            */
+/* ------------------------------- */
 .container {
   max-width: 960px;
   margin: 40px auto;
   padding: 30px;
   background: #fff;
   border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-/* Titulados */
 h1, h2, h3 {
   color: #0073e6;
   margin-bottom: 20px;
   text-align: center;
 }
 
-/* Enlaces */
+/* ------------------------------- */
+/* Links                           */
+/* ------------------------------- */
 a {
   color: #0073e6;
   text-decoration: none;
 }
+
 a:hover {
   text-decoration: underline;
 }
 
-/* Formularios */
+/* ------------------------------- */
+/* Forms                           */
+/* ------------------------------- */
 form {
   margin-top: 20px;
 }
-label {
+
+/* Use form-group to wrap each field for extra spacing */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
   font-weight: bold;
   margin-bottom: 8px;
   display: block;
 }
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: #0073e6;
+  outline: none;
+}
+
+/* Also style inputs that might not be wrapped in .form-group */
 input[type="text"],
 input[type="email"],
+input[type="password"],
 input[type="date"],
 textarea,
 select {
@@ -61,10 +112,22 @@ select {
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  margin-bottom: 16px;
   font-size: 16px;
+  margin-bottom: 16px;
 }
-button {
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #0073e6;
+  outline: none;
+}
+
+/* ------------------------------- */
+/* Buttons                         */
+/* ------------------------------- */
+button,
+.button {
   background: #0073e6;
   border: none;
   border-radius: 4px;
@@ -73,27 +136,38 @@ button {
   font-size: 16px;
   cursor: pointer;
   transition: background 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
 }
-button:hover {
+
+button:hover,
+.button:hover {
   background: #005bb5;
 }
 
-/* Tablas */
+/* ------------------------------- */
+/* Tables                          */
+/* ------------------------------- */
 table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
 }
+
 table th,
 table td {
   border: 1px solid #eaeaea;
   text-align: left;
+  padding: 8px;
 }
+
 table th {
   background: #f2f2f2;
 }
 
-/* Mensajes de error */
+/* ------------------------------- */
+/* Alert Messages                  */
+/* ------------------------------- */
 .alert-error {
   background-color: #f8d7da;
   color: #721c24;
@@ -103,129 +177,168 @@ table th {
   border-radius: 4px;
 }
 
-/* Navegación y enlaces de paso */
+/* ------------------------------- */
+/* Navigation & Step Links         */
+/* ------------------------------- */
 .week-navigation {
   text-align: center;
   margin-bottom: 20px;
 }
+
 .week-navigation a {
   margin: 0 10px;
 }
 
-/* Adaptabilidad */
+/* ------------------------------- */
+/* Resource Grid                   */
+/* ------------------------------- */
+.resource-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.resource-item {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+
+.resource-item:hover {
+  transform: scale(1.02);
+}
+
+.resource-item img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.resource-item h3 {
+  margin: 10px 0 5px;
+  font-size: 18px;
+  color: #0073e6;
+}
+
+.resource-item p {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.resource-item button {
+  background: #0073e6;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.resource-item button:hover {
+  background: #005bb5;
+}
+
+/* ------------------------------- */
+/* Footer                          */
+/* ------------------------------- */
+.footer {
+  text-align: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  gap: 20px;
+}
+
+.footer img {
+  width: 30px;
+}
+
+/* ------------------------------- */
+/* Calendar Slot (Push-button)     */
+/* ------------------------------- */
+.push-button {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.push-button input[type="checkbox"] {
+  display: none;
+}
+
+.push-button .button-label {
+  display: inline-block;
+  padding: 10px 15px;
+  background-color: #0073e6;
+  color: #fff;
+  border-radius: 4px;
+  box-shadow: 0 4px 0 #005bb5, 0 4px 10px rgba(0,0,0,0.2);
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.3s ease;
+}
+
+.push-button input[type="checkbox"]:checked + .button-label {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #005bb5, 0 2px 4px rgba(0,0,0,0.2);
+  background-color: #28a745;
+}
+
+/* ------------------------------- */
+/* Datos Personales Options        */
+/* ------------------------------- */
+input[type="radio"] {
+  margin-right: 5px;
+}
+
+#guestForm,
+#registerSection,
+#loginSection {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+#registerSection h2,
+#loginSection h2 {
+  margin-bottom: 15px;
+}
+
+/* ------------------------------- */
+/* Specific Styling for Login/Register Forms */
+/* ------------------------------- */
+.login-container,
+.register-container {
+  max-width: 400px;
+  margin: 40px auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.login-container h1,
+.register-container h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* ------------------------------- */
+/* Responsive Adjustments          */
+/* ------------------------------- */
 @media (max-width: 768px) {
   .container {
     padding: 20px;
     margin: 20px auto;
   }
-  table, tbody, tr, th, td {
-    display: block;
-    width: 100%;
-  }
-  tr {
-    margin-bottom: 15px;
-  }
-  th, td {
-    text-align: right;
-    padding-left: 50%;
-    position: relative;
-  }
-  th::before,
-  td::before {
-    position: absolute;
-    left: 10px;
-    top: 12px;
-    font-weight: bold;
-  }
 }
-
-/* Grid de recursos */
-.resource-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-}
-.resource-item {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    text-align: center;
-    background-color: #fff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
-}
-.resource-item:hover {
-    transform: scale(1.02);
-}
-.resource-item img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 4px;
-    margin-bottom: 10px;
-}
-.resource-item h3 {
-    margin: 10px 0 5px;
-    font-size: 18px;
-    color: #0073e6;
-}
-.resource-item p {
-    font-size: 14px;
-    color: #555;
-    margin-bottom: 10px;
-}
-.resource-item button {
-    background: #0073e6;
-    border: none;
-    border-radius: 4px;
-    color: #fff;
-    padding: 10px 20px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.3s ease;
-}
-.resource-item button:hover {
-    background: #005bb5;
-}
-
-/* Footer */
-.footer {
-    text-align: center;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    justify-content: center;
-    align-items: center;
-    align-content: stretch;
-    padding: 20px;
-    gap: 20px;
-}
-.footer img {
-    width: 30px;
-}
-
-/* Push-button styles for calendar slots */
-.push-button {
-    display: inline-block;
-    cursor: pointer;
-}
-.push-button input[type="checkbox"] {
-    display: none;
-}
-.push-button .button-label {
-    display: inline-block;
-    padding: 10px 15px;
-    background-color: #0073e6;
-    color: #fff;
-    border-radius: 4px;
-    box-shadow: 0 4px 0 #005bb5, 0 4px 10px rgba(0,0,0,0.2);
-    transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.3s ease;
-}
-.push-button input[type="checkbox"]:checked + .button-label {
-    transform: translateY(4px);
-    box-shadow: 0 0 0 #005bb5, 0 2px 4px rgba(0,0,0,0.2);
-    background-color: #28a745;
-}
-
-/* Holiday styling */
-
 

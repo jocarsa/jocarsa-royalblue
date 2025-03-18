@@ -1,53 +1,99 @@
 <?php
-// Only start session if one is not already active
+// partes/confirmacionyguardado.php
+
+// Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once 'inc/dbinit.php'; // Ensure $pdo is available
+require_once 'inc/dbinit.php'; // Ensures $pdo is available
 
-// If no reservation data exists in the session, redirect back to step 1
+// Check that reservation data exists; if not, redirect to step 1
 if (empty($_SESSION['reserva'])) {
     header("Location: index.php?step=1");
     exit;
 }
 
-// Handle form submission: insert reservation into database and clear session data
+// Use the tenant ID stored in session (make sure it's set earlier in your flow)
+$ownerId = $_SESSION['front_tenant_id'] ?? 0;
+
+// Handle form submission: Insert the reservation(s) into the database and then clear the session data
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reservationData = $_SESSION['reserva'];
-    // Prepare the insertion statement. Adjust the query if your schema is different.
-    $stmt = $pdo->prepare("INSERT INTO reservations (resource_id, fecha_reserva, hora_reserva, nombre, apellidos, email, telefono, notas, creado_en)
-                           VALUES (:resource_id, :fecha_reserva, :hora_reserva, :nombre, :apellidos, :email, :telefono, :notas, datetime('now'))");
-    // Loop through each selected slot.
-    // We assume each slot is in the format "YYYY-MM-DD_HH"
+
+    // Prepare the insertion statement (using owner_id and billing fields)
+    $stmt = $pdo->prepare("INSERT INTO reservations (
+        owner_id, 
+        resource_id, 
+        fecha_reserva, 
+        hora_reserva, 
+        nombre, 
+        apellidos, 
+        email, 
+        telefono, 
+        notas, 
+        creado_en,
+        billing_request,
+        billing_name,
+        billing_address,
+        billing_vat_id
+    ) VALUES (
+        :owner_id,
+        :resource_id,
+        :fecha_reserva,
+        :hora_reserva,
+        :nombre,
+        :apellidos,
+        :email,
+        :telefono,
+        :notas,
+        datetime('now'),
+        :billing_request,
+        :billing_name,
+        :billing_address,
+        :billing_vat_id
+    )");
+
+    // Loop through each selected slot (each slot is in format "YYYY-MM-DD_HH")
     foreach ($reservationData['slots'] as $slot) {
         list($fecha, $hora) = explode("_", $slot);
+
         $stmt->execute([
-            ':resource_id'   => $reservationData['resource_id'],
-            ':fecha_reserva' => $fecha,
-            ':hora_reserva'  => $hora,
-            ':nombre'        => $reservationData['nombre'],
-            ':apellidos'     => isset($reservationData['apellidos']) ? $reservationData['apellidos'] : '',
-            ':email'         => $reservationData['email'],
-            ':telefono'      => isset($reservationData['telefono']) ? $reservationData['telefono'] : '',
-            ':notas'         => isset($reservationData['notas']) ? $reservationData['notas'] : ''
+            ':owner_id'        => $ownerId,
+            ':resource_id'     => $reservationData['resource_id'],
+            ':fecha_reserva'   => $fecha,
+            ':hora_reserva'    => $hora,
+            ':nombre'          => $reservationData['nombre'],
+            ':apellidos'       => isset($reservationData['apellidos']) ? $reservationData['apellidos'] : '',
+            ':email'           => $reservationData['email'],
+            ':telefono'        => isset($reservationData['telefono']) ? $reservationData['telefono'] : '',
+            ':notas'           => isset($reservationData['notas']) ? $reservationData['notas'] : '',
+            ':billing_request' => $reservationData['billing_request'] ?? 0,
+            ':billing_name'    => $reservationData['billing_name'] ?? null,
+            ':billing_address' => $reservationData['billing_address'] ?? null,
+            ':billing_vat_id'  => $reservationData['billing_vat_id'] ?? null
         ]);
     }
-    // Remove the reservation data from the session so it isn’t reinserted on refresh
+
+    // Clear the reservation data from session to prevent duplicate insertions on refresh
     unset($_SESSION['reserva']);
-    // Redirect to the final message page to complete the process
+
+    // Redirect to the final confirmation message (step=done)
     header("Location: index.php?step=done");
     exit;
 }
 
-// Retrieve reservation data from the session for display
+// Retrieve reservation data from the session for display purposes
 $r = $_SESSION['reserva'];
 $slots = isset($r['slots']) && is_array($r['slots']) ? $r['slots'] : [];
 
-// Retrieve the resource name from the database using the resource_id from session data
+// Retrieve the resource name using the resource_id from the session data and the tenant's owner_id
 if (isset($r['resource_id'])) {
-    $stmtRes = $pdo->prepare("SELECT nombre FROM resources WHERE id = :id");
-    $stmtRes->execute([':id' => $r['resource_id']]);
+    $stmtRes = $pdo->prepare("SELECT nombre FROM resources WHERE id = :id AND owner_id = :owner_id");
+    $stmtRes->execute([
+        ':id' => $r['resource_id'],
+        ':owner_id' => $ownerId
+    ]);
     $recursoNombre = $stmtRes->fetchColumn();
     if (!$recursoNombre) {
         $recursoNombre = "Desconocido";
@@ -182,9 +228,17 @@ if (isset($r['resource_id'])) {
       <div class="detail-item"><strong>Email:</strong> <?php echo isset($r['email']) ? htmlspecialchars($r['email']) : "No proporcionado"; ?></div>
       <div class="detail-item"><strong>Teléfono:</strong> <?php echo isset($r['telefono']) ? htmlspecialchars($r['telefono']) : "No proporcionado"; ?></div>
       <div class="detail-item"><strong>Notas:</strong> <?php echo isset($r['notas']) ? nl2br(htmlspecialchars($r['notas'])) : "Sin notas"; ?></div>
+
+      <?php if (!empty($r['billing_request'])): ?>
+        <h3>Datos de Facturación</h3>
+        <div class="detail-item"><strong>Nombre/Empresa:</strong> <?php echo htmlspecialchars($r['billing_name']); ?></div>
+        <div class="detail-item"><strong>Dirección:</strong> <?php echo htmlspecialchars($r['billing_address']); ?></div>
+        <div class="detail-item"><strong>NIF/CIF:</strong> <?php echo htmlspecialchars($r['billing_vat_id']); ?></div>
+      <?php endif; ?>
     </div>
 
     <div class="action-buttons">
+      <!-- The form below, when submitted, will trigger the insertion into the database -->
       <form method="post">
         <button type="submit">Confirmar Reserva</button>
       </form>

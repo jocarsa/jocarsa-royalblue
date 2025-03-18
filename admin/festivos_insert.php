@@ -1,13 +1,32 @@
 <?php
+session_start();
+
+// Make sure you have a DB connection here:
+require_once __DIR__ . '/../config.php'; 
+try {
+    $pdo = new PDO('sqlite:' . DB_PATH);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(Exception $ex) {
+    die("Error DB: " . $ex->getMessage());
+}
+
+// Retrieve the admin's ID:
+$ownerId = $_SESSION['admin_id'] ?? 0;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_festivo'])) {
-    $fecha = $_POST['fecha'];
-    if ($fecha) {
-        $stmt = $pdo->prepare("INSERT INTO holidays(fecha) VALUES(:f)");
-        $stmt->execute([':f' => $fecha]);
+    $fecha = $_POST['fecha'] ?? '';
+
+    if ($fecha && $ownerId > 0) {
+        // Insert with owner_id
+        $stmt = $pdo->prepare("INSERT INTO holidays (owner_id, fecha) VALUES (:oid, :f)");
+        $stmt->execute([
+            ':oid' => $ownerId,
+            ':f' => $fecha
+        ]);
         header("Location: index.php?action=festivos");
         exit;
     } else {
-        $error = "La fecha es obligatoria.";
+        $error = "La fecha es obligatoria o falta owner_id.";
     }
 }
 ?>

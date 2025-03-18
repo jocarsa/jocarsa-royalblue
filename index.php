@@ -1,46 +1,55 @@
 <?php
 session_start();
-date_default_timezone_set('Europe/Madrid');
+require_once 'inc/dbinit.php';
 
-include "inc/dbinit.php";
+// Check if the tenant slug is passed in the URL (e.g. index.php?id=jocarsa3)
+if (isset($_GET['id'])) {
+    // Store the tenant slug in the session
+    $_SESSION['front_tenant_slug'] = $_GET['id'];
+    
+    // Query the tenant record based on the slug.
+    // Adjust the query if your tenant identifier is stored in a different column.
+    $stmt = $pdo->prepare("SELECT id FROM admin_users WHERE LOWER(business_name) = LOWER(:tenant) LIMIT 1");
+    $stmt->execute([':tenant' => $_GET['id']]);
+    $tenant = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($tenant) {
+        $_SESSION['front_tenant_id'] = $tenant['id'];
+    } else {
+        // Handle the case when the tenant is not found.
+        $_SESSION['front_tenant_id'] = 0;
+    }
+} else {
+    // Optionally, if "id" is not set, you can define a default tenant
+    // or redirect the user to an error page.
+    $_SESSION['front_tenant_slug'] = 'default';
+    $_SESSION['front_tenant_id']   = 0;
+}
 
-// --------------------------------------------------
-// STEP 1: Selección de Recurso
-// --------------------------------------------------
-if ($step === 1) {
+// Determine the current step in the reservation process.
+// For example, step=1 for resource selection, step=2 for calendar, step=3 for personal data,
+// step=4 for confirmation/insert, and step=done for the final message.
+$step = isset($_GET['step']) ? $_GET['step'] : 1;
+
+if ($step == 1) {
     include "partes/recurso.php";
     exit;
-}
-
-// --------------------------------------------------
-// STEP 2: Calendario Semanal con checkboxes
-// --------------------------------------------------
-if ($step === 2) {
+} elseif ($step == 2) {
     include "partes/calendariosemanal.php";
     exit;
-}
-
-// --------------------------------------------------
-// STEP 3: Datos personales
-// --------------------------------------------------
-if ($step === 3) {
+} elseif ($step == 3) {
     include "partes/datospersonales.php";
     exit;
-}
-
-// --------------------------------------------------
-// STEP 4: Confirmación y guardado
-// --------------------------------------------------
-if ($step === 4) {
+} elseif ($step == 4) {
     include "partes/confirmacionyguardado.php";
     exit;
-}
-
-// --------------------------------------------------
-// DONE: Mensaje final
-// --------------------------------------------------
-if (isset($_GET['step']) && $_GET['step'] === 'done') {
+} elseif (isset($_GET['step']) && $_GET['step'] === 'done') {
     include "partes/mensajefinal.php";
     exit;
 }
+
+// Fallback: if no matching step is found, default to step 1.
+include "partes/recurso.php";
+exit;
+?>
 

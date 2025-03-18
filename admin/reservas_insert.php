@@ -1,31 +1,66 @@
 <?php
+session_start();
+require_once __DIR__ . '/../config.php';
+try {
+    $pdo = new PDO('sqlite:' . DB_PATH);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(Exception $ex) {
+    die("Error DB: " . $ex->getMessage());
+}
+
+$ownerId = $_SESSION['admin_id'] ?? 0;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nueva_reserva'])) {
-    $resource_id = trim($_POST['resource_id']);
-    $fecha_reserva = trim($_POST['fecha_reserva']);
-    $hora_reserva = trim($_POST['hora_reserva']);
-    $nombre = trim($_POST['nombre']);
-    $apellidos = trim($_POST['apellidos'] ?? '');
-    $email = trim($_POST['email']);
-    $telefono = trim($_POST['telefono'] ?? '');
-    $notas = trim($_POST['notas'] ?? '');
-    
-    if ($resource_id && $fecha_reserva && $hora_reserva && $nombre && $email) {
-        $stmt = $pdo->prepare("INSERT INTO reservations (resource_id, fecha_reserva, hora_reserva, nombre, apellidos, email, telefono, notas, creado_en)
-            VALUES (:rid, :fecha, :hora, :nombre, :apellidos, :email, :telefono, :notas, datetime('now'))");
+    $resource_id    = trim($_POST['resource_id']);
+    $fecha_reserva  = trim($_POST['fecha_reserva']);
+    $hora_reserva   = trim($_POST['hora_reserva']);
+    $nombre         = trim($_POST['nombre']);
+    $apellidos      = trim($_POST['apellidos'] ?? '');
+    $email          = trim($_POST['email']);
+    $telefono       = trim($_POST['telefono'] ?? '');
+    $notas          = trim($_POST['notas'] ?? '');
+
+    if ($resource_id && $fecha_reserva && $hora_reserva && $nombre && $email && $ownerId > 0) {
+        $stmt = $pdo->prepare("
+            INSERT INTO reservations (
+                owner_id,
+                resource_id,
+                fecha_reserva,
+                hora_reserva,
+                nombre,
+                apellidos,
+                email,
+                telefono,
+                notas,
+                creado_en
+            ) VALUES (
+                :oid,
+                :rid,
+                :fecha,
+                :hora,
+                :nom,
+                :ape,
+                :email,
+                :tel,
+                :notas,
+                datetime('now')
+            )
+        ");
         $stmt->execute([
-            ':rid' => $resource_id,
+            ':oid'   => $ownerId,
+            ':rid'   => $resource_id,
             ':fecha' => $fecha_reserva,
-            ':hora' => $hora_reserva,
-            ':nombre' => $nombre,
-            ':apellidos' => $apellidos,
+            ':hora'  => $hora_reserva,
+            ':nom'   => $nombre,
+            ':ape'   => $apellidos,
             ':email' => $email,
-            ':telefono' => $telefono,
+            ':tel'   => $telefono,
             ':notas' => $notas
         ]);
         header("Location: index.php?action=reservations");
         exit;
     } else {
-        $error = "Todos los campos obligatorios deben ser completados.";
+        $error = "Todos los campos obligatorios deben ser completados o falta owner_id.";
     }
 }
 ?>

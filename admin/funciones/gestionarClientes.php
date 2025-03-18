@@ -1,12 +1,15 @@
 <?php
 function gestionarClientes($pdo) {
+    $ownerId = $_SESSION['admin_id'];
     echo "<h2>Gestión de Clientes</h2>";
-    // Query unique customers from reservations (grouped by email)
-    $sql = "SELECT email, nombre, apellidos, telefono, COUNT(*) as total_reservations, MIN(creado_en) as first_reservation 
+    // Query unique customers from reservations (grouped by email) filtered by owner_id
+    $sql = "SELECT email, nombre, apellidos, telefono, COUNT(*) as total_reservations, MIN(creado_en) as first_reservation
             FROM reservations
+            WHERE owner_id=:owner_id
             GROUP BY email
             ORDER BY first_reservation DESC";
-    $stmt = $pdo->query($sql);
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([':owner_id' => $ownerId]);
     $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
     ?>
     <table class="admin-table">
@@ -35,5 +38,6 @@ function gestionarClientes($pdo) {
     </table>
     <?php
 }
+
 ?>
 

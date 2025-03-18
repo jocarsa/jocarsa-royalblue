@@ -1,9 +1,16 @@
 <?php
+// partes/calendariosemanal.php
 // Asegurar que se eligió un recurso en step=1
+
+require_once 'inc/dbinit.php'; // ensures $pdo is available
+
 if (empty($_SESSION['reserva']['resource_id'])) {
     header("Location: index.php?step=1");
     exit;
 }
+
+// Use the tenant ID stored in session
+$ownerId = $_SESSION['front_tenant_id'] ?? 0;
 
 // Determinar la semana a mostrar
 $weekOffset = isset($_GET['weekOffset']) ? (int)$_GET['weekOffset'] : 0;
@@ -17,8 +24,9 @@ for ($i = 0; $i < 7; $i++) {
     $days[] = date("Y-m-d", $ts); 
 }
 
-// Obtener festivos desde la tabla "holidays"
-$stmtH = $pdo->query("SELECT fecha FROM holidays");
+// Obtener festivos desde la tabla "holidays", filtrando por owner
+$stmtH = $pdo->prepare("SELECT fecha FROM holidays WHERE owner_id=:oid");
+$stmtH->execute([':oid' => $ownerId]);
 $holidays = $stmtH->fetchAll(PDO::FETCH_COLUMN);
 
 // Al enviar el form (checkboxes)
@@ -28,16 +36,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['selected_slots'])) {
     $unitPrice = isset($_SESSION['reserva']['unit_price']) ? floatval($_SESSION['reserva']['unit_price']) : 0;
     $_SESSION['reserva']['budget'] = $countSlots * $unitPrice;
     $_SESSION['reserva']['slots'] = $selectedSlots;
-    header("Location: index.php?step=3");
+    
+    // Build redirect URL including the tenant slug ("id") so that index.php remains in the correct context.
+    $redirect = 'index.php?id=' . urlencode($_SESSION['front_tenant_slug'] ?? 'default') . '&step=3';
+    header("Location: $redirect");
     exit;
 }
 
-// Retrieve resource-specific availability instead of global availability
+// Retrieve resource-specific availability, but also filter by owner
 $availability = [];
 $rid = $_SESSION['reserva']['resource_id'];
-$stmtAv = $pdo->prepare("SELECT day_of_week, hour, available FROM resource_availability WHERE resource_id = :rid");
-$stmtAv->execute([':rid' => $rid]);
+$stmtAv = $pdo->prepare("SELECT day_of_week, hour, available
+                         FROM resource_availability
+                         WHERE resource_id = :rid 
+                           AND owner_id = :oid");
+$stmtAv->execute([':rid' => $rid, ':oid' => $ownerId]);
 $rowsAv = $stmtAv->fetchAll(PDO::FETCH_ASSOC);
+
 if (!empty($rowsAv)) {
     foreach ($rowsAv as $r) {
         $dw = $r['day_of_week']; 
@@ -53,15 +68,19 @@ if (!empty($rowsAv)) {
     }
 }
 
-// Cargar reservas existentes para evitar solapamientos
+// Cargar reservas existentes (para evitar solapamientos), filtrando by owner & resource
 $reservadas = [];
-$res2 = $pdo->query("SELECT resource_id, fecha_reserva, hora_reserva FROM reservations");
+$res2 = $pdo->prepare("SELECT resource_id, fecha_reserva, hora_reserva 
+                       FROM reservations
+                       WHERE owner_id=:oid 
+                         AND resource_id=:rid");
+$res2->execute([':oid'=>$ownerId, ':rid'=>$rid]);
 $rowsRes = $res2->fetchAll(PDO::FETCH_ASSOC);
+
 foreach ($rowsRes as $rx) {
     $dia   = $rx['fecha_reserva'];
     $hora  = substr($rx['hora_reserva'], 0, 2);
-    $resId = $rx['resource_id']; 
-    $reservadas[$resId][$dia][$hora] = true;
+    $reservadas[$dia][$hora] = true;
 }
 
 // Función para obtener el día de la semana (0=Dom, 1=Lun, ... 6=Sáb)
@@ -106,11 +125,12 @@ function getDayOfWeek($dateYmd) {
 
     <p>Recurso seleccionado: 
     <?php 
-        $rid = $_SESSION['reserva']['resource_id'];
-        $rName = $pdo->prepare("SELECT nombre FROM resources WHERE id=:id");
-        $rName->execute([':id'=>$rid]);
-        $nameRecurso = $rName->fetchColumn();
-        echo htmlspecialchars($nameRecurso);
+        // Recuperar nombre del recurso
+        $stmtR = $pdo->prepare("SELECT nombre FROM resources 
+                                WHERE id = :id AND owner_id = :oid");
+        $stmtR->execute([':id'=>$rid, ':oid'=>$ownerId]);
+        $recursoNombre = $stmtR->fetchColumn();
+        echo htmlspecialchars($recursoNombre ?: "Desconocido");
     ?></p>
 
     <div class="week-navigation">
@@ -131,18 +151,17 @@ function getDayOfWeek($dateYmd) {
                 </tr>
             </thead>
             <tbody>
-            <?php for ($hour = 0; $hour < 24; $hour++): 
-                    $timeLabel = sprintf("%02d:00 - %02d:00", $hour, $hour + 1);
-                ?>
+            <?php for ($hour = 0; $hour < 24; $hour++):
+                $timeLabel = sprintf("%02d:00 - %02d:00", $hour, $hour + 1);
+            ?>
                 <tr>
-                    <td class="hour-label"><?php echo str_pad($hour, 2, "0", STR_PAD_LEFT) . ":00"; ?></td>
+                    <td style="text-align:center;"><?php echo str_pad($hour, 2, "0", STR_PAD_LEFT) . ":00"; ?></td>
                     <?php foreach ($days as $dayDate):
                         $dw = getDayOfWeek($dayDate);
-                        // Use resource-specific availability
-                        $isAvailable = (!empty($availability[$dw][$hour]) && $availability[$dw][$hour] == 1);
                         $hStr = str_pad($hour, 2, "0", STR_PAD_LEFT);
-                        $isReserved = !empty($reservadas[$rid][$dayDate][$hStr]);
-                        $slotName = $dayDate . "_" . $hStr;
+                        $isAvailable = (!empty($availability[$dw][$hour]) && $availability[$dw][$hour]==1);
+                        $isReserved  = !empty($reservadas[$dayDate][$hStr]);
+                        $slotName    = $dayDate . "_" . $hStr;
                     ?>
                         <td style="text-align:center;">
                             <?php if (in_array($dayDate, $holidays)): ?>
@@ -170,7 +189,7 @@ function getDayOfWeek($dateYmd) {
     </form>
     <p><a href="index.php?step=1">&laquo; Volver a seleccionar recurso</a></p>
     <p class="footer">
-        <img src="https://jocarsa.com/img/logo.svg" alt="Logo">powered by jocarsa | royalblue
+        <img src="https://jocarsa.com/img/logo.svg" alt="Logo"> powered by jocarsa | royalblue
         <img src="royalblue.png" alt="Royalblue">
     </p>
 </div>

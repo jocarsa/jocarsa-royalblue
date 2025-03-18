@@ -1,16 +1,20 @@
 <?php
 function gestionarRecursos($pdo) {
+    $ownerId = $_SESSION['admin_id'];
     echo "<h2>Gestión de Recursos</h2>";
-    
+
     // Check for deletion if GET parameter exists
     if (isset($_GET['del'])) {
         $id = (int)$_GET['del'];
-        $pdo->prepare("DELETE FROM resources WHERE id=:id")->execute([':id' => $id]);
+        $stmt = $pdo->prepare("DELETE FROM resources WHERE id=:id AND owner_id=:owner_id");
+        $stmt->execute([':id' => $id, ':owner_id' => $ownerId]);
         echo "<p>Recurso eliminado.</p>";
     }
-    
-    // Get all resources from DB
-    $rows = $pdo->query("SELECT * FROM resources ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+
+    // Get all resources from DB filtered by owner_id
+    $stmt = $pdo->prepare("SELECT * FROM resources WHERE owner_id=:owner_id ORDER BY id DESC");
+    $stmt->execute([':owner_id' => $ownerId]);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     ?>
     <p><a href="?action=add_resource" class="button">Añadir Nuevo Recurso</a></p>
     <table class="admin-table">
@@ -52,5 +56,6 @@ function gestionarRecursos($pdo) {
     </table>
     <?php
 }
+
 ?>
 

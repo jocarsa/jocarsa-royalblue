@@ -1,7 +1,8 @@
 <?php
-// admin/inc/logout.php
+// superadmin/inc/logout.php
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
-    unset($_SESSION['admin_id'], $_SESSION['admin_username']);
+    // log out superadmin
+    unset($_SESSION['superadmin_id'], $_SESSION['superadmin_username']);
     session_destroy();
     header("Location: index.php");
     exit;

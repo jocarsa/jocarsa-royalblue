@@ -184,6 +184,7 @@ form button:hover {
   height: 0;
 }
 .slider {
+width:100%;
   position: absolute;
   cursor: pointer;
   top: 0;
@@ -223,7 +224,7 @@ table.admin-table {
 table.admin-table th,
 table.admin-table td {
     border: 1px solid #ddd;
-    padding: 12px 15px;
+    padding: 0px 15px;
     text-align: left;
 }
 table.admin-table th {
@@ -334,4 +335,12 @@ h1{
 }
 h1 img{
 	width:50px;
+}
+.admin-table td{width:10%;}
+.admin-table td div{
+	background:royalblue;
+	color:white;
+	padding:5px;
+	margin:1px;
+	border-radius:5px;
 }

@@ -1,35 +1,58 @@
 <?php
-// Al enviar el formulario al hacer clic en un recurso
+
+require_once 'inc/dbinit.php';
+
+// Get owner (tenant) id from session (or set default if needed)
+$ownerId = $_SESSION['front_owner_id'] ?? 0;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $resourceId = isset($_POST['resource_id']) ? (int)$_POST['resource_id'] : 0;
     if ($resourceId > 0) {
-        // Obtener el precio unitario del recurso
-        $stmt = $pdo->prepare("SELECT price_per_unit FROM resources WHERE id=:id");
-        $stmt->execute([':id' => $resourceId]);
+        // Fetch resource details (price per unit)
+        $stmt = $pdo->prepare("SELECT price_per_unit FROM resources WHERE id = :id AND owner_id = :owner");
+        $stmt->execute([
+            ':id'   => $resourceId,
+            ':owner'=> $ownerId
+        ]);
         $price = $stmt->fetchColumn();
-        
-        // Guardar en sesión los datos iniciales de la reserva, incluyendo unit_price
+
+        if (!$price) {
+            $price = 0; // fallback value
+        }
+
+        // Save reservation data in session
         $_SESSION['reserva'] = [
-            'resource_id' => $resourceId,
-            'slots'       => [],
-            'nombre'      => '',
-            'apellidos'   => '',
-            'email'       => '',
-            'telefono'    => '',
-            'notas'       => '',
-            'budget'      => 0,
-            'unit_price'  => $price
+            'resource_id'     => $resourceId,
+            'slots'           => [],
+            'nombre'          => '',
+            'apellidos'       => '',
+            'email'           => '',
+            'telefono'        => '',
+            'notas'           => '',
+            'budget'          => 0,
+            'unit_price'      => $price,
+            'billing_request' => 0,
+            'billing_name'    => '',
+            'billing_address' => '',
+            'billing_vat_id'  => ''
         ];
-        // Redirigir al paso 2
-        header("Location: index.php?step=2");
+
+        // Build the redirect URL including the required tenant slug ("id")
+        // Assumes that front_tenant_slug was set earlier in index.php.
+        $redirect = 'index.php?id=' . urlencode($_SESSION['front_tenant_slug'] ?? 'default') . '&step=2';
+        if (isset($_GET['owner'])) {
+            $redirect .= '&owner=' . urlencode($_GET['owner']);
+        }
+        header("Location: $redirect");
         exit;
     } else {
         $error = "Por favor, selecciona un recurso.";
     }
 }
 
-// Cargar recursos de la tabla `resources`
-$stmt = $pdo->query("SELECT id, nombre, descripcion, foto FROM resources ORDER BY nombre ASC");
+// Load resources for the tenant
+$stmt = $pdo->prepare("SELECT id, nombre, descripcion, foto FROM resources WHERE owner_id = :ownerId ORDER BY nombre ASC");
+$stmt->execute([':ownerId' => $_SESSION['front_tenant_id']]);
 $recursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
@@ -38,55 +61,6 @@ $recursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta charset="UTF-8">
     <title>Reservas - Selección de Recurso</title>
     <link rel="stylesheet" href="css/estilo.css">
-    <style>
-        /* Estilos para el grid de recursos */
-        .resource-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-        .resource-item {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-            background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-        }
-        .resource-item:hover {
-            transform: scale(1.02);
-        }
-        .resource-item img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-        .resource-item h3 {
-            margin: 10px 0 5px;
-            font-size: 18px;
-            color: #0073e6;
-        }
-        .resource-item p {
-            font-size: 14px;
-            color: #555;
-            margin-bottom: 10px;
-        }
-        .resource-item button {
-            background: #0073e6;
-            border: none;
-            border-radius: 4px;
-            color: #fff;
-            padding: 10px 20px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-        .resource-item button:hover {
-            background: #005bb5;
-        }
-    </style>
 </head>
 <body>
 <div class="container">
@@ -108,7 +82,6 @@ $recursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         <?php endforeach; ?>
     </div>
-    <p class="footer"><img src="https://jocarsa.com/img/logo.svg">powered by jocarsa | royalblue<img src="royalblue.png"></p>
 </div>
 </body>
 </html>

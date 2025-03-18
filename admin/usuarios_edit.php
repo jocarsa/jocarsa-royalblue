@@ -1,12 +1,27 @@
 <?php
+session_start();
+require_once __DIR__ . '/../config.php';
+try {
+    $pdo = new PDO('sqlite:' . DB_PATH);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(Exception $ex) {
+    die("Error DB: " . $ex->getMessage());
+}
+
+// If your 'users' table is multi-tenant, you'd do $ownerId filtering. 
+$ownerId = $_SESSION['admin_id'] ?? 0;
+
 if (!isset($_GET['id'])) {
     header("Location: index.php?action=users");
     exit;
 }
 $id = (int) $_GET['id'];
+
+// If you have an owner_id column in 'users', filter by that. Otherwise skip:
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id=:id");
 $stmt->execute([':id'=>$id]);
 $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+
 if (!$usuario) {
     echo "<p>Usuario no encontrado.</p>";
     exit;
@@ -17,9 +32,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['editar_usuario'])) {
     $email = trim($_POST['email']);
     $usuarioNombre = trim($_POST['usuario']);
     $password = trim($_POST['password']);
+
     if ($nombre && $email && $usuarioNombre && $password) {
-        $stmt = $pdo->prepare("UPDATE users SET nombre=:n, email=:e, usuario=:u, password=:p WHERE id=:id");
-        $stmt->execute([':n'=>$nombre,':e'=>$email,':u'=>$usuarioNombre,':p'=>$password,':id'=>$id]);
+        // If there's no owner_id in the table, just do:
+        $stmt = $pdo->prepare("
+            UPDATE users 
+            SET nombre=:n, email=:e, usuario=:u, password=:p 
+            WHERE id=:id
+        ");
+        $stmt->execute([
+            ':n'=>$nombre,
+            ':e'=>$email,
+            ':u'=>$usuarioNombre,
+            ':p'=>$password,
+            ':id'=>$id
+        ]);
         header("Location: index.php?action=users");
         exit;
     } else {
@@ -42,16 +69,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['editar_usuario'])) {
     <?php endif; ?>
     <form method="post">
         <label for="nombre">Nombre:</label>
-        <input type="text" name="nombre" id="nombre" value="<?php echo htmlspecialchars($usuario['nombre']); ?>" required>
+        <input type="text" name="nombre" id="nombre" 
+               value="<?php echo htmlspecialchars($usuario['nombre']); ?>" required>
         
         <label for="email">Email:</label>
-        <input type="email" name="email" id="email" value="<?php echo htmlspecialchars($usuario['email']); ?>" required>
+        <input type="email" name="email" id="email" 
+               value="<?php echo htmlspecialchars($usuario['email']); ?>" required>
         
         <label for="usuario">Usuario:</label>
-        <input type="text" name="usuario" id="usuario" value="<?php echo htmlspecialchars($usuario['usuario']); ?>" required>
+        <input type="text" name="usuario" id="usuario" 
+               value="<?php echo htmlspecialchars($usuario['usuario']); ?>" required>
         
         <label for="password">Contraseña:</label>
-        <input type="text" name="password" id="password" value="<?php echo htmlspecialchars($usuario['password']); ?>" required>
+        <input type="text" name="password" id="password" 
+               value="<?php echo htmlspecialchars($usuario['password']); ?>" required>
         
         <button type="submit" name="editar_usuario">Actualizar Usuario</button>
     </form>

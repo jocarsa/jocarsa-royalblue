@@ -1,22 +1,37 @@
 <?php
+session_start();
+require_once __DIR__ . '/../config.php';
+try {
+    $pdo = new PDO('sqlite:' . DB_PATH);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(Exception $ex) {
+    die("Error DB: " . $ex->getMessage());
+}
+
+$ownerId = $_SESSION['admin_id'] ?? 0;
+
 if (!isset($_GET['id'])) {
     header("Location: index.php?action=festivos");
     exit;
 }
 $id = (int) $_GET['id'];
-$stmt = $pdo->prepare("SELECT * FROM holidays WHERE id=:id");
-$stmt->execute([':id' => $id]);
+
+// MODIFIED: also check owner_id
+$stmt = $pdo->prepare("SELECT * FROM holidays WHERE id=:id AND owner_id=:oid");
+$stmt->execute([':id'=>$id, ':oid'=>$ownerId]);
 $festivo = $stmt->fetch(PDO::FETCH_ASSOC);
+
 if (!$festivo) {
-    echo "<p>Festivo no encontrado.</p>";
+    echo "<p>Festivo no encontrado o no pertenece a este administrador.</p>";
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['editar_festivo'])) {
-    $fecha = $_POST['fecha'];
+    $fecha = $_POST['fecha'] ?? '';
     if ($fecha) {
-        $stmt = $pdo->prepare("UPDATE holidays SET fecha=:f WHERE id=:id");
-        $stmt->execute([':f' => $fecha, ':id' => $id]);
+        // Also filter by owner_id in the update
+        $stmt = $pdo->prepare("UPDATE holidays SET fecha=:f WHERE id=:id AND owner_id=:oid");
+        $stmt->execute([':f' => $fecha, ':id' => $id, ':oid'=>$ownerId]);
         header("Location: index.php?action=festivos");
         exit;
     } else {

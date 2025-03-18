@@ -1,22 +1,45 @@
 <?php
-// Insertar nuevo recurso
+session_start();
+require_once __DIR__ . '/../config.php';
+try {
+    $pdo = new PDO('sqlite:' . DB_PATH);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(Exception $ex) {
+    die("Error DB: " . $ex->getMessage());
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_recurso'])) {
     $nom = trim($_POST['nombre']);
     $desc = trim($_POST['descripcion'] ?? '');
     $price = floatval($_POST['price_per_unit'] ?? 0);
     $color = trim($_POST['color'] ?? '');
     $foto_base64 = '';
+
+    // ADDED: get admin's ID
+    $ownerId = $_SESSION['admin_id'] ?? 0;
+
     if (!empty($_FILES['foto']['tmp_name'])) {
         $foto_data = file_get_contents($_FILES['foto']['tmp_name']);
         $foto_base64 = base64_encode($foto_data);
     }
-    if ($nom) {
-        $stmt = $pdo->prepare("INSERT INTO resources(nombre, descripcion, foto, price_per_unit, color) VALUES(:n, :d, :f, :p, :c)");
-        $stmt->execute([':n' => $nom, ':d' => $desc, ':f' => $foto_base64, ':p' => $price, ':c' => $color]);
+
+    if ($nom && $ownerId > 0) {
+        // Insert with owner_id
+        $stmt = $pdo->prepare("INSERT INTO resources
+            (owner_id, nombre, descripcion, foto, price_per_unit, color)
+            VALUES (:oid, :n, :d, :f, :p, :c)");
+        $stmt->execute([
+            ':oid' => $ownerId,
+            ':n' => $nom,
+            ':d' => $desc,
+            ':f' => $foto_base64,
+            ':p' => $price,
+            ':c' => $color
+        ]);
         header("Location: index.php?action=resources");
         exit;
     } else {
-        $error = "El nombre es obligatorio.";
+        $error = "El nombre es obligatorio y/o no se encontró owner_id válido.";
     }
 }
 ?>
@@ -27,7 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_recurso'])) {
     <title>Añadir Nuevo Recurso</title>
     <link rel="stylesheet" href="css/estilo.css">
     <style>
-      /* Style adjustments for color input */
       input[type="color"] {
           border: none;
           width: 50px;

@@ -1,5 +1,5 @@
 <?php
-// mensajefinal.php
+// partes/mensajefinal.php
 // (If dynamic data is available, you can retrieve it here; otherwise, placeholders are used)
 ?>
 <!DOCTYPE html>

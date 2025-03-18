@@ -10,32 +10,54 @@ try {
     die("Error DB: " . $ex->getMessage());
 }
 
+$ownerId = $_SESSION['admin_id'] ?? 0;
+
 // Process form submission: update availability for the selected resource
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['resource_id'])) {
     $resource_id = (int)$_POST['resource_id'];
-    // Delete all existing availability rows for this resource
-    $pdo->prepare("DELETE FROM resource_availability WHERE resource_id = :rid")
-        ->execute([':rid' => $resource_id]);
-    // Loop over each day (0=Dom to 6=Sáb) and each hour (0 to 23)
+
+    // Delete all existing availability rows for this resource & owner
+    $pdo->prepare("
+        DELETE FROM resource_availability 
+        WHERE resource_id = :rid AND owner_id = :oid
+    ")->execute([':rid' => $resource_id, ':oid' => $ownerId]);
+
+    // Loop days/hours
     for ($d = 0; $d < 7; $d++) {
         for ($h = 0; $h < 24; $h++) {
             $available = 0;
             if (isset($_POST['availability'][$d][$h]) && $_POST['availability'][$d][$h] == "1") {
                 $available = 1;
             }
-            $stmt = $pdo->prepare("INSERT INTO resource_availability (resource_id, day_of_week, hour, available) VALUES (:rid, :d, :h, :a)");
-            $stmt->execute([':rid' => $resource_id, ':d' => $d, ':h' => $h, ':a' => $available]);
+            $stmt = $pdo->prepare("
+                INSERT INTO resource_availability (
+                    owner_id, resource_id, day_of_week, hour, available
+                ) VALUES (:oid, :rid, :d, :h, :a)
+            ");
+            $stmt->execute([
+                ':oid' => $ownerId,
+                ':rid' => $resource_id,
+                ':d' => $d,
+                ':h' => $h,
+                ':a' => $available
+            ]);
         }
     }
     $message = "Horario actualizado para el recurso seleccionado.";
 }
 
-// Check if a resource is selected via GET parameter
+// Check if a resource is selected
 $selectedResource = isset($_GET['resource_id']) ? (int)$_GET['resource_id'] : 0;
 
 // If no resource is selected, display the resources grid
 if ($selectedResource <= 0) {
-    $stmt = $pdo->query("SELECT id, nombre, descripcion, foto FROM resources ORDER BY nombre ASC");
+    $stmt = $pdo->prepare("
+        SELECT id, nombre, descripcion, foto
+        FROM resources
+        WHERE owner_id=:oid
+        ORDER BY nombre ASC
+    ");
+    $stmt->execute([':oid' => $ownerId]);
     $resources = $stmt->fetchAll(PDO::FETCH_ASSOC);
     ?>
     <!DOCTYPE html>
@@ -102,11 +124,14 @@ if ($selectedResource <= 0) {
             <?php foreach ($resources as $res): ?>
                 <div class="resource-item">
                     <?php if (!empty($res['foto'])): ?>
-                        <img src="data:image/jpeg;base64,<?php echo $res['foto']; ?>" alt="<?php echo htmlspecialchars($res['nombre']); ?>">
+                        <img src="data:image/jpeg;base64,<?php echo $res['foto']; ?>" 
+                             alt="<?php echo htmlspecialchars($res['nombre']); ?>">
                     <?php endif; ?>
                     <h3><?php echo htmlspecialchars($res['nombre']); ?></h3>
                     <p><?php echo htmlspecialchars($res['descripcion']); ?></p>
-                    <a href="?action=resource_availability&resource_id=<?php echo $res['id']; ?>">Ver Disponibilidad</a>
+                    <a href="?action=resource_availability&resource_id=<?php echo $res['id']; ?>">
+                        Ver Disponibilidad
+                    </a>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -118,14 +143,19 @@ if ($selectedResource <= 0) {
     exit;
 }
 
-// If a resource is selected, load its availability data
+// If a resource is selected, load its availability
 $availability = [];
-$stmtAv = $pdo->prepare("SELECT day_of_week, hour, available FROM resource_availability WHERE resource_id = :rid");
-$stmtAv->execute([':rid' => $selectedResource]);
+$stmtAv = $pdo->prepare("
+    SELECT day_of_week, hour, available
+    FROM resource_availability
+    WHERE resource_id=:rid AND owner_id=:oid
+");
+$stmtAv->execute([':rid'=>$selectedResource, ':oid'=>$ownerId]);
 while ($row = $stmtAv->fetch(PDO::FETCH_ASSOC)) {
     $availability[$row['day_of_week']][$row['hour']] = $row['available'];
 }
-// If there is no availability data, initialize a blank grid
+
+// If there's no availability data, init a blank grid
 if (empty($availability)) {
     for ($d = 0; $d < 7; $d++) {
         for ($h = 0; $h < 24; $h++) {
@@ -133,7 +163,21 @@ if (empty($availability)) {
         }
     }
 }
+
 $nombresDias = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
+// Retrieve resource info
+$stmtRes = $pdo->prepare("
+    SELECT nombre, descripcion, foto
+    FROM resources
+    WHERE id=:id AND owner_id=:oid
+");
+$stmtRes->execute([':id'=>$selectedResource, ':oid'=>$ownerId]);
+$resourceInfo = $stmtRes->fetch(PDO::FETCH_ASSOC);
+if (!$resourceInfo) {
+    echo "<p>Recurso no encontrado o no pertenece a este admin.</p>";
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -148,53 +192,28 @@ $nombresDias = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
             width: 50px;
             height: 28px;
         }
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
+        .switch input {opacity: 0; width: 0; height: 0;}
         .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 28px;
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 28px;
         }
         .slider:before {
-            position: absolute;
-            content: "";
-            height: 20px;
-            width: 20px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
+            position: absolute; content: "";
+            height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background-color: white; transition: .4s; border-radius: 50%;
         }
-        .switch input:checked + .slider {
-            background-color: #0073e6;
-        }
-        .switch input:checked + .slider:before {
-            transform: translateX(22px);
-        }
+        .switch input:checked + .slider { background-color: #0073e6; }
+        .switch input:checked + .slider:before { transform: translateX(22px); }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>Disponibilidad para Recurso</h1>
-    <?php
-    // Retrieve resource info
-    $stmtRes = $pdo->prepare("SELECT nombre, descripcion, foto FROM resources WHERE id = :id");
-    $stmtRes->execute([':id' => $selectedResource]);
-    $resourceInfo = $stmtRes->fetch(PDO::FETCH_ASSOC);
-    ?>
     <h2><?php echo htmlspecialchars($resourceInfo['nombre']); ?></h2>
     <?php if (!empty($resourceInfo['foto'])): ?>
-        <img src="data:image/jpeg;base64,<?php echo $resourceInfo['foto']; ?>" alt="<?php echo htmlspecialchars($resourceInfo['nombre']); ?>" style="max-width:200px;">
+        <img src="data:image/jpeg;base64,<?php echo $resourceInfo['foto']; ?>" 
+             alt="<?php echo htmlspecialchars($resourceInfo['nombre']); ?>" 
+             style="max-width:200px;">
     <?php endif; ?>
     <p><?php echo htmlspecialchars($resourceInfo['descripcion']); ?></p>
     <?php if (!empty($message)): ?>
@@ -214,13 +233,16 @@ $nombresDias = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
             <tbody>
                 <?php for($hour = 0; $hour < 24; $hour++): ?>
                     <tr>
-                        <td><?php echo str_pad($hour, 2, "0", STR_PAD_LEFT) . ":00 - " . str_pad($hour + 1, 2, "0", STR_PAD_LEFT) . ":00"; ?></td>
-                        <?php for($d = 0; $d < 7; $d++): 
-                            $checked = (!empty($availability[$d][$hour]) && $availability[$d][$hour]==1) ? "checked" : "";
+                        <td><?php echo str_pad($hour, 2, "0", STR_PAD_LEFT) . ":00"; ?></td>
+                        <?php for($d = 0; $d < 7; $d++):
+                            $checked = (!empty($availability[$d][$hour]) && 
+                                        $availability[$d][$hour] == 1) ? "checked" : "";
                         ?>
                         <td style="text-align:center;">
                             <label class="switch">
-                                <input type="checkbox" name="availability[<?php echo $d; ?>][<?php echo $hour; ?>]" value="1" <?php echo $checked; ?>>
+                                <input type="checkbox" 
+                                       name="availability[<?php echo $d; ?>][<?php echo $hour; ?>]"
+                                       value="1" <?php echo $checked; ?>>
                                 <span class="slider"></span>
                             </label>
                         </td>

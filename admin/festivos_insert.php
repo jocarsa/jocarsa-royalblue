@@ -1,5 +1,5 @@
 <?php
-session_start();
+
 
 // Make sure you have a DB connection here:
 require_once __DIR__ . '/../config.php'; 

@@ -65,9 +65,15 @@ function gestionarInvoices($pdo, $owner_id) {
         echo '<td>'.htmlspecialchars($inv['invoice_number']).'</td>';
         echo '<td>'.htmlspecialchars($inv['invoice_date']).'</td>';
         echo '<td>'.htmlspecialchars($inv['total']).'</td>';
-        echo '<td>
-                <a href="?action=invoices&view='.$inv['id'].'" class="button small">Ver</a>
-              </td>';
+        // When printing each row in your invoices table, add:
+// Example snippet within the loop that outputs each invoice row:
+echo '<td>
+        <a href="?action=edit_invoice&id=' . $inv['id'] . '" class="button small">Editar</a>
+        <a href="?action=invoices&del=' . $inv['id'] . '" class="button small danger" onclick="return confirm(\'¿Eliminar?\');">Eliminar</a>
+        <a href="enviar_factura.php?id=' . $inv['id'] . '" class="button small" onclick="return confirm(\'¿Enviar esta factura al sistema de facturación?\');">Enviar a Rosybrown</a>
+      </td>';
+
+
         echo '</tr>';
     }
     echo '</tbody></table>';

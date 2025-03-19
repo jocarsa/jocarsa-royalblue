@@ -79,7 +79,6 @@ function visualizarReservas($pdo) {
             echo '<strong>' . $d . '</strong><br>';
             if (isset($resByDate[$dateStr])) {
                 foreach ($resByDate[$dateStr] as $res) {
-                    // Use the resource color if available; fallback to a default color.
                     $bgColor = !empty($res['resource_color']) ? htmlspecialchars($res['resource_color']) : "#ccc";
                     echo '<div style="font-size:10px; background-color:' . $bgColor . '; padding:2px; margin-bottom:2px;">';
                     echo '(' . htmlspecialchars(substr($res['hora_reserva'], 0, 5)) . ') ';
@@ -201,7 +200,6 @@ function visualizarReservas($pdo) {
                 $hourKey = str_pad($hour, 2, "0", STR_PAD_LEFT);
                 if (isset($resByDateHour[$day][$hourKey])) {
                     foreach ($resByDateHour[$day][$hourKey] as $res) {
-                        // Use resource_color for background
                         $bgColor = !empty($res['resource_color']) ? htmlspecialchars($res['resource_color']) : "#ccc";
                         echo '<div style="font-size:10px; background-color:' . $bgColor . '; padding:2px; margin-bottom:2px;">';
                         echo '(' . htmlspecialchars(substr($res['hora_reserva'], 0, 5)) . ') ';
@@ -337,14 +335,30 @@ function visualizarReservas($pdo) {
 
     } else {
         // === DEFAULT TABLE VIEW ===
+        // Add filter controls for the default table view (all, past, future)
+        $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
+        echo '<div class="filter-controls" style="margin-bottom:20px;">';
+        echo 'Mostrar: ';
+        echo '<a href="?action=reservations&view=table&filter=all"' . ($filter=='all' ? ' class="active-filter"' : '') . '>Todas</a> | ';
+        echo '<a href="?action=reservations&view=table&filter=past"' . ($filter=='past' ? ' class="active-filter"' : '') . '>Pasadas</a> | ';
+        echo '<a href="?action=reservations&view=table&filter=future"' . ($filter=='future' ? ' class="active-filter"' : '') . '>Futuras</a>';
+        echo '</div>';
+
         $sql = "SELECT r.*, re.nombre AS recurso
                 FROM reservations r
                 LEFT JOIN resources re ON r.resource_id = re.id
-                WHERE r.owner_id=:owner_id
-                ORDER BY r.id DESC";
-        $rows = $pdo->prepare($sql);
-        $rows->execute([':owner_id' => $ownerId]);
-        $rows = $rows->fetchAll(PDO::FETCH_ASSOC);
+                WHERE r.owner_id=:owner_id";
+        if($filter == 'past'){
+            // Only past reservations (append ':00' for seconds)
+            $sql .= " AND datetime(r.fecha_reserva || ' ' || r.hora_reserva || ':00') < datetime('now')";
+        } elseif($filter == 'future'){
+            // Only future reservations
+            $sql .= " AND datetime(r.fecha_reserva || ' ' || r.hora_reserva || ':00') >= datetime('now')";
+        }
+        $sql .= " ORDER BY r.id DESC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':owner_id' => $ownerId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo '<table class="admin-table">';
         echo '<thead><tr>
                 <th>ID</th>

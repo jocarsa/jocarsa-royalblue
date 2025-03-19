@@ -158,7 +158,7 @@ table th,
 table td {
   border: 1px solid #eaeaea;
   text-align: left;
-  padding: 8px;
+  padding: 0px;
 }
 
 table th {

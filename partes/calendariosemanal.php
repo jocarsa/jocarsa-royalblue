@@ -95,7 +95,7 @@ function getDayOfWeek($dateYmd) {
     <title>Reservas - Calendario Semanal</title>
     <link rel="stylesheet" href="css/estilo.css">
     <style>
-    /* Push-button styles for calendar slots */
+    /* Push-button styles for available slots */
     .push-button {
         display: inline-block;
         cursor: pointer;
@@ -157,15 +157,27 @@ function getDayOfWeek($dateYmd) {
                 <tr>
                     <td style="text-align:center;"><?php echo str_pad($hour, 2, "0", STR_PAD_LEFT) . ":00"; ?></td>
                     <?php foreach ($days as $dayDate):
+                        // Compute the slot timestamp (assuming minutes and seconds as 00:00)
+                        $slotTimestamp = strtotime("$dayDate $hour:00:00");
+                        // Check if the slot is in the past relative to now
+                        $isPast = ($slotTimestamp < time());
                         $dw = getDayOfWeek($dayDate);
                         $hStr = str_pad($hour, 2, "0", STR_PAD_LEFT);
-                        $isAvailable = (!empty($availability[$dw][$hour]) && $availability[$dw][$hour]==1);
+                        $isAvailable = (!empty($availability[$dw][$hour]) && $availability[$dw][$hour] == 1);
                         $isReserved  = !empty($reservadas[$dayDate][$hStr]);
                         $slotName    = $dayDate . "_" . $hStr;
+                        
+                        // Set cell style based on whether slot is in the past
+                        $cellStyle = "text-align:center;";
+                        if ($isPast) {
+                            $cellStyle .= " background-color: #ccc;";
+                        }
                     ?>
-                        <td style="text-align:center;">
+                        <td style="<?php echo $cellStyle; ?>">
                             <?php if (in_array($dayDate, $holidays)): ?>
                                 <span class="holiday">-</span>
+                            <?php elseif ($isPast): ?>
+                                
                             <?php else: ?>
                                 <?php if ($isAvailable && !$isReserved): ?>
                                     <label class="push-button">
@@ -189,8 +201,7 @@ function getDayOfWeek($dateYmd) {
     </form>
     <p><a href="index.php?step=1">&laquo; Volver a seleccionar recurso</a></p>
     <p class="footer">
-        <img src="https://jocarsa.com/img/logo.svg" alt="Logo"> powered by jocarsa | royalblue
-        <img src="royalblue.png" alt="Royalblue">
+        <img src="https://jocarsa.com/img/logo.svg" alt="Logo"> powered by jocarsa | royalblue <img src="royalblue.png" alt="Royalblue">
     </p>
 </div>
 </body>

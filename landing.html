@@ -368,10 +368,15 @@
         <input type="email" id="email" name="email" required>
         <label for="mensaje">Mensaje:</label>
         <textarea id="mensaje" name="mensaje" rows="5" required></textarea>
+         <input type="hidden" name="origin_url" id="origin_url">
         <div style="text-align:center;">
           <button type="submit">Enviar Mensaje</button>
         </div>
       </form>
+      <script>
+    // Set the current page URL in the hidden input field
+    document.getElementById('origin_url').value = window.location.href;
+</script>
     </div>
   </section>
   <footer>

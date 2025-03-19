@@ -17,12 +17,12 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
 } catch (PDOException $e) {
-    die(json_encode(["status" => "error", "message" => "Database error: " . $e->getMessage()]));
+    die("Error en la base de datos: " . $e->getMessage());
 }
 
 // Check if request method is POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Get POST data (no JavaScript required)
+    // Get POST data
     $name = isset($_POST['name']) ? trim($_POST['name']) : null;
     $email = isset($_POST['email']) ? trim($_POST['email']) : null;
     $message = isset($_POST['message']) ? trim($_POST['message']) : null;
@@ -40,24 +40,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':origin_url' => $origin_url
             ]);
 
-            echo json_encode(["status" => "success", "message" => "Contact saved successfully"]);
+            // Show success message
+            echo "<!DOCTYPE html>
+            <html lang='es'>
+            <head>
+                <meta charset='UTF-8'>
+                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                <title>Gracias por contactarnos</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        background-color: #f4f4f4;
+                        margin: 0;
+                        padding: 0;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                    }
+                    .container {
+                        max-width: 500px;
+                        background: #ffffff;
+                        padding: 20px;
+                        border-radius: 8px;
+                        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+                        text-align: center;
+                    }
+                    h1 {
+                        color: #2c3e50;
+                    }
+                    p {
+                        color: #555;
+                        font-size: 16px;
+                        line-height: 1.5;
+                    }
+                    .footer {
+                        margin-top: 20px;
+                        font-size: 12px;
+                        color: #777;
+                    }
+                    .button {
+                        display: inline-block;
+                        padding: 12px 24px;
+                        margin-top: 20px;
+                        background-color: #3498db;
+                        color: #ffffff;
+                        text-decoration: none;
+                        font-weight: bold;
+                        border-radius: 5px;
+                    }
+                    .button:hover {
+                        background-color: #2980b9;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <h1>¡Gracias por contactarnos!</h1>
+                    <p>Hola <strong>" . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . "</strong>,</p>
+                    <p>Hemos recibido tu mensaje y nuestro equipo se pondrá en contacto contigo lo antes posible.</p>
+                    <p>Si tienes alguna consulta adicional, no dudes en visitarnos.</p>
+                    <a href='/' class='button'>Volver al sitio web</a>
+                    <p class='footer'>Atentamente,<br><strong>El equipo de nuestra empresa</strong></p>
+                </div>
+            </body>
+            </html>";
+
+            exit;
         } catch (PDOException $e) {
-            echo json_encode(["status" => "error", "message" => "Database error: " . $e->getMessage()]);
+            echo "Error en la base de datos: " . $e->getMessage();
         }
     } else {
-        echo json_encode([
-            "status" => "error",
-            "message" => "All fields are required",
-            "debug" => [
-                "name" => $name,
-                "email" => $email,
-                "message" => $message,
-                "origin_url" => $origin_url
-            ]
-        ]);
+        echo "Error: Todos los campos son obligatorios.";
     }
 } else {
-    echo json_encode(["status" => "error", "message" => "Invalid request method"]);
+    echo "Error: Método de solicitud no válido.";
 }
 ?>
 

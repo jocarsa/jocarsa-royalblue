@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <p>Hola <strong>" . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . "</strong>,</p>
                     <p>Hemos recibido tu mensaje y nuestro equipo se pondrá en contacto contigo lo antes posible.</p>
                     <p>Si tienes alguna consulta adicional, no dudes en visitarnos.</p>
-                    <a href='/' class='button'>Volver al sitio web</a>
+                    <a href='https://royalblue.jocarsa.com/landing.html' class='button'>Volver al sitio web</a>
                     <p class='footer'>Atentamente,<br><strong>El equipo de nuestra empresa</strong></p>
                 </div>
             </body>
